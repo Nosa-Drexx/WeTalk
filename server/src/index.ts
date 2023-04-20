@@ -1,4 +1,5 @@
 import { Application, Request, Response } from "express";
+import type { CallUser } from "../global";
 
 const express = require("express");
 const http = require("http");
@@ -23,6 +24,22 @@ app.get("/", (req: Request, res: Response): void => {
   res.send("Server is running");
 });
 
-app.listen(PORT, () => {
+io.on("connection", (socket: any) => {
+  socket.emit("host", socket.id);
+
+  socket.on("disconnect", () => {
+    socket.broadcast.emit("callEnded");
+  });
+
+  socket.on("callUser", ({ userToCall, signalData, from, name }: CallUser) => {
+    io.to(userToCall).emit("callUser", { signal: signalData, from, name });
+  });
+
+  socket.on("answerCall", (data: any) => {
+    io.to(data.to).emit("callAccepted", data.signal);
+  });
+});
+
+server.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
